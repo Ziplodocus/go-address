@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  database:
+    container_name: database
+    image: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=goaddress
+      - POSTGRES_USER=goaddress
+      - POSTGRES_PASSWORD=Gw1}0S8MLsY3
