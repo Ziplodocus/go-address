@@ -1,13 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"regexp"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-type address struct {
+type Address struct {
 	Postcode string `json:"postcode"`
+	Lat      string `json:"lat"`
+	Lng      string `json:"lng"`
 	Line_1   string `json:"line_1"`
 	Line_2   string `json:"line_2"`
 	City     string `json:"city"`
@@ -16,10 +23,11 @@ type address struct {
 }
 
 type Postcode struct {
-	Value string `json:"value"`
+	Value        string `json:"value"`
+	last_checked time.Time
 }
 
-var addresses = []address{
+var addresses = []Address{
 	{
 		Postcode: "NR1 1NN",
 		Line_1:   "40 St. Faiths Lane",
@@ -31,44 +39,48 @@ var addresses = []address{
 }
 
 func main() {
+	gin.SetMode(os.Getenv("GIN_MODE"))
+
+	InitDatabase()
+
 	router := gin.Default()
 
-	router.GET("/addresses", getAddresses)
-	router.GET("/addresses/:postcode", getAddressByPostcode)
-	router.POST("/addresses", postAddresses)
+	router.GET("/addresses/:postcode", getAddressesByPostcode)
 
-	router.Run("localhost:8080")
+	router.Run(":8080")
 }
 
-func getAddresses(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, addresses)
-}
-
-// postAddresses adds an address from JSON received in the request body.
-func postAddresses(c *gin.Context) {
-	var newAddress address
-
-	// Call BindJSON to bind the received JSON to
-	// newAddress.
-	if err := c.BindJSON(&newAddress); err != nil {
-		return
-	}
-
-	// Add the new address to the slice.
-	addresses = append(addresses, newAddress)
-	c.IndentedJSON(http.StatusCreated, newAddress)
-}
-
-func getAddressByPostcode(c *gin.Context) {
+func getAddressesByPostcode(c *gin.Context) {
 	postcode := c.Param("postcode")
 
-	for _, a := range addresses {
-		if a.Postcode != postcode {
-			continue
-		}
-		c.IndentedJSON(http.StatusOK, a)
+	postcode, err := sanitisePostcode(postcode)
+	if err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "invalid UK postcode format"})
 		return
 	}
 
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "address not found"})
+	addresses, err := GetAddresses(postcode)
+
+	if err != nil {
+		c.IndentedJSON(http.StatusOK, addresses)
+	}
+
+	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "addresses not found"})
+}
+
+func sanitisePostcode(postcode string) (string, error) {
+	// Convert postcode to uppercase
+	postcode = strings.ToUpper(postcode)
+
+	// Regular expression to match UK postcode format
+	regex := regexp.MustCompile(`^([A-Z]{1,2}\d{1,2}[A-Z]?)\s*(\d[A-Z]{2})$`)
+	matches := regex.FindStringSubmatch(postcode)
+
+	if len(matches) == 0 {
+		return "", fmt.Errorf("invalid UK postcode format")
+	}
+
+	// Concatenate the two parts of the postcode with a space separator
+	sanitizedPostcode := fmt.Sprintf("%s %s", matches[1], matches[2])
+	return sanitizedPostcode, nil
 }
