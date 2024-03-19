@@ -57,8 +57,6 @@ func createAddressesTable(db *sql.DB) error {
         CREATE TABLE IF NOT EXISTS addresses (
 			id SERIAL PRIMARY KEY,
             postcode TEXT PRIMARY KEY,
-            lat FLOAT,
-            lng FLOAT,
             line_1 TEXT,
             line_2 TEXT,
             city TEXT,
@@ -73,8 +71,8 @@ func createAddressesTable(db *sql.DB) error {
 
 func InsertAddresses(db *sql.DB, addrs []Address) error {
 	// Prepare statement for inserting addresses
-	stmt, err := db.Prepare(`INSERT INTO addresses (postcode, lat, lng, line_1, line_2, city, county, country)
-                                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`)
+	stmt, err := db.Prepare(`INSERT INTO addresses (postcode, line_1, line_2, city, county, country)
+                                VALUES ($1, $2, $3, $4, $5, $6)`)
 	if err != nil {
 		return err
 	}
@@ -82,7 +80,7 @@ func InsertAddresses(db *sql.DB, addrs []Address) error {
 
 	// Iterate over addresses and insert each one into the database
 	for _, addr := range addresses {
-		_, err := stmt.Exec(addr.Postcode, addr.Lat, addr.Lng, addr.Line_1, addr.Line_2, addr.City, addr.County, addr.Country)
+		_, err := stmt.Exec(addr.Postcode, addr.Line_1, addr.Line_2, addr.City, addr.County, addr.Country)
 		if err != nil {
 			return err
 		}
@@ -105,7 +103,7 @@ func SelectAddressesByPostCode(db *sql.DB, postcode string) ([]Address, error) {
 	var addresses []Address
 	for rows.Next() {
 		var address Address
-		if err := rows.Scan(&address.Postcode, &address.Lat, &address.Lng, &address.Line_1, &address.Line_2, &address.City, &address.County, &address.Country); err != nil {
+		if err := rows.Scan(&address.Postcode, &address.Line_1, &address.Line_2, &address.City, &address.County, &address.Country); err != nil {
 			return nil, err
 		}
 		addresses = append(addresses, address)
@@ -118,7 +116,7 @@ func SelectAddressesByPostCode(db *sql.DB, postcode string) ([]Address, error) {
 }
 
 func selectAllAddresses(db *sql.DB) ([]Address, error) {
-	query := `SELECT postcode, lat, lng, line_1, line_2, city, county, country
+	query := `SELECT postcode, line_1, line_2, city, county, country
                 FROM addresses`
 
 	rows, err := db.Query(query)
@@ -130,7 +128,7 @@ func selectAllAddresses(db *sql.DB) ([]Address, error) {
 	var addresses []Address
 	for rows.Next() {
 		var address Address
-		if err := rows.Scan(&address.Postcode, &address.Lat, &address.Lng, &address.Line_1, &address.Line_2, &address.City, &address.County, &address.Country); err != nil {
+		if err := rows.Scan(&address.Postcode, &address.Line_1, &address.Line_2, &address.City, &address.County, &address.Country); err != nil {
 			return nil, err
 		}
 		addresses = append(addresses, address)

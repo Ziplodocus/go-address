@@ -13,8 +13,6 @@ import (
 
 type Address struct {
 	Postcode string `json:"postcode"`
-	Lat      string `json:"lat"`
-	Lng      string `json:"lng"`
 	Line_1   string `json:"line_1"`
 	Line_2   string `json:"line_2"`
 	City     string `json:"city"`
